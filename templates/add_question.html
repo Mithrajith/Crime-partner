@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Add Question - {{ module.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Add Question to {{ module.name }}</h1>
+    <p>Upload a question image and provide the answer</p>
+</div>
+
+<div class="section">
+    <form method="POST" enctype="multipart/form-data" class="question-form">
+        <div class="form-group">
+            <label for="question_name" class="form-label">Question Name/Title</label>
+            <input type="text" 
+                   name="question_name" 
+                   id="question_name" 
+                   placeholder="Enter a descriptive name for this question..."
+                   class="form-input">
+            <small class="form-help">Optional: Give your question a meaningful name (e.g., "Python Loops Exercise", "Data Structures Question")</small>
+        </div>
+
+        <div class="form-group">
+            <label for="image" class="form-label">Question Image</label>
+            <div class="file-upload-area" id="fileUploadArea">
+                <input type="file" 
+                       name="image" 
+                       id="image" 
+                       accept="image/*" 
+                       required 
+                       class="form-input file-input"
+                       style="display: none;">
+                <div class="upload-placeholder" id="uploadPlaceholder">
+                    <div class="upload-icon">📷</div>
+                    <p class="upload-text">Drag & drop an image here, paste from clipboard, or click to browse</p>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('image').click()">Browse Files</button>
+                </div>
+                <div class="image-preview" id="imagePreview" style="display: none;">
+                    <img id="previewImg" src="" alt="Preview" class="preview-image">
+                    <div class="preview-actions">
+                        <button type="button" class="btn btn-danger btn-small" onclick="removeImage()">Remove</button>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('image').click()">Change</button>
+                    </div>
+                </div>
+            </div>
+            <small class="form-help">Supported formats: PNG, JPG, JPEG, GIF, BMP, WebP. You can also paste images from clipboard!</small>
+        </div>
+
+        <div class="form-group">
+            <label for="answer" class="form-label">Answer</label>
+            <textarea name="answer" 
+                      id="answer" 
+                      rows="10" 
+                      placeholder="Enter the answer here. Python code and special formatting will be preserved..."
+                      required 
+                      class="form-textarea"></textarea>
+            <small class="form-help">Your answer will preserve formatting, indentation, and syntax. Perfect for Python code!</small>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Question</button>
+            <a href="{{ url_for('module_view', module_id=module.id) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="section">
+    <div class="info-box">
+        <h3>Tips for adding questions:</h3>
+        <ul>
+            <li>Give your questions descriptive names for easy identification</li>
+            <li>Use clear, high-resolution images for better readability</li>
+            <li>You can drag & drop images directly onto the upload area</li>
+            <li>Paste images from clipboard using Ctrl+V (or Cmd+V on Mac)</li>
+            <li>Write answers with proper formatting - line breaks and indentation will be preserved</li>
+            <li>Python code will be displayed with proper syntax highlighting in the answers view</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// Image upload functionality
+const fileUploadArea = document.getElementById('fileUploadArea');
+const fileInput = document.getElementById('image');
+const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+const imagePreview = document.getElementById('imagePreview');
+const previewImg = document.getElementById('previewImg');
+
+// Handle file selection
+fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        displayImage(file);
+    }
+});
+
+// Drag and drop functionality
+fileUploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    fileUploadArea.classList.add('drag-over');
+});
+
+fileUploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    fileUploadArea.classList.remove('drag-over');
+});
+
+fileUploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    fileUploadArea.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith('image/')) {
+            fileInput.files = files;
+            displayImage(file);
+        }
+    }
+});
+
+// Paste functionality
+document.addEventListener('paste', function(e) {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (file) {
+                // Create a new FileList with the pasted file
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                displayImage(file);
+                e.preventDefault();
+            }
+        }
+    }
+});
+
+function displayImage(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        uploadPlaceholder.style.display = 'none';
+        imagePreview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage() {
+    fileInput.value = '';
+    uploadPlaceholder.style.display = 'block';
+    imagePreview.style.display = 'none';
+    previewImg.src = '';
+}
+</script>
+
+<style>
+.file-upload-area {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+.file-upload-area:hover, .file-upload-area.drag-over {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.upload-icon {
+    font-size: 3rem;
+    opacity: 0.6;
+}
+
+.upload-text {
+    color: #64748b;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.image-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.preview-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ module.name }} - Quiz Platform{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ module.name }}</h1>
+    <p>Questions in this module (images only view)</p>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>Questions</h2>
+        <div class="section-actions">
+            <a href="{{ url_for('add_question', module_id=module.id) }}" class="btn btn-primary">Add New Question</a>
+            <a href="{{ url_for('answers_view', module_id=module.id) }}" class="btn btn-info">View Answers</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    {% if questions %}
+        <div class="questions-grid">
+            {% for question in questions %}
+            <div class="question-card">
+                <div class="question-image">
+                    <img src="{{ url_for('uploaded_file', filename=question.image_path) }}" 
+                         alt="{{ question.name or 'Question ' ~ loop.index }}" 
+                         class="question-img">
+                </div>
+                <div class="question-info">
+                    <p class="question-number">{{ question.name or 'Question #' ~ loop.index }}</p>
+                    <small class="question-date">Added: {{ question.created_at }}</small>
+                </div>
+                <div class="question-actions">
+                    <a href="{{ url_for('question_answer', question_id=question.id) }}" 
+                       class="btn btn-info btn-small">View Answer</a>
+                    <a href="{{ url_for('delete_question', question_id=question.id) }}" 
+                       class="btn btn-danger btn-small" 
+                       onclick="return confirm('Are you sure you want to delete this question?')">Delete</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>No questions added yet. <a href="{{ url_for('add_question', module_id=module.id) }}">Add your first question!</a></p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

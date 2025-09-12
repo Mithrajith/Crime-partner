@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Answers - {{ module.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ module.name }} - Questions &amp; Answers</h1>
+    <p>Complete Q&A view with images and formatted answers</p>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>Questions and Answers</h2>
+        <div class="section-actions">
+            <a href="{{ url_for('module_view', module_id=module.id) }}" class="btn btn-secondary">Back to Questions</a>
+            <a href="{{ url_for('add_question', module_id=module.id) }}" class="btn btn-primary">Add Question</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="search-section">
+        <form method="GET" class="search-form">
+            <div class="search-group">
+                <input type="text" 
+                       name="search" 
+                       value="{{ search_query or '' }}" 
+                       placeholder="Search questions by name or answer content..."
+                       class="search-input">
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if search_query %}
+                    <a href="{{ url_for('answers_view', module_id=module.id) }}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+        {% if search_query %}
+            <p class="search-results">Showing results for: <strong>"{{ search_query }}"</strong></p>
+        {% endif %}
+    </div>
+
+    {% if questions %}
+        <div class="qa-container">
+            {% for question in questions %}
+            <div class="qa-item">
+                <div class="qa-header">
+                    <h3>{{ question.name or 'Question ' ~ loop.index }}</h3>
+                    <small class="qa-date">Added: {{ question.created_at }}</small>
+                </div>
+                
+                <div class="qa-content">
+                    <div class="qa-question">
+                        <h4>Question Image</h4>
+                        <div class="qa-image">
+                            <img src="{{ url_for('uploaded_file', filename=question.image_path) }}" 
+                                 alt="{{ question.name or 'Question ' ~ loop.index }}" 
+                                 class="qa-img">
+                        </div>
+                    </div>
+                    
+                    <div class="qa-answer">
+                        <h4>Answer</h4>
+                        <div class="answer-content">
+                            {% set answer_text = question.answer %}
+                            {% if answer_text %}
+                                {% if ('def ' in answer_text) or ('class ' in answer_text) or ('import ' in answer_text) or ('from ' in answer_text) or ('print(' in answer_text) or ('    ' in answer_text) or ('```' in answer_text) %}
+                                    <!-- Detected code content, format as code block -->
+                                    <pre><code>{{ answer_text }}</code></pre>
+                                {% else %}
+                                    <!-- Regular text content with paragraph formatting -->
+                                    {% for paragraph in answer_text.split('\n\n') %}
+                                        {% if paragraph.strip() %}
+                                            <p>{{ paragraph.replace('\n', '<br>')|safe }}</p>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            {% if search_query %}
+                <p>No questions found matching "{{ search_query }}". <a href="{{ url_for('answers_view', module_id=module.id) }}">View all questions</a></p>
+            {% else %}
+                <p>No questions in this module yet. <a href="{{ url_for('add_question', module_id=module.id) }}">Add your first question!</a></p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.search-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    border: 1px solid #cbd5e1;
+}
+
+.search-form {
+    margin-bottom: 0;
+}
+
+.search-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    min-width: 300px;
+    background: white;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+}
+
+.search-results {
+    margin-top: 1rem;
+    color: #64748b;
+    font-style: italic;
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .search-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-input {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .search-group .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

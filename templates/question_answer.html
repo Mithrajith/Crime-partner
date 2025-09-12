@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{{ question.name }} - Answer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ question.name }}</h1>
+    <p>Question and Answer from {{ question.module_name }}</p>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>Question & Answer</h2>
+        <div class="section-actions">
+            <a href="{{ url_for('module_view', module_id=question.module_id) }}" class="btn btn-secondary">Back to Questions</a>
+            <a href="{{ url_for('answers_view', module_id=question.module_id) }}" class="btn btn-info">View All Answers</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="qa-container">
+        <div class="qa-item">
+            <div class="qa-header">
+                <h3>{{ question.name }}</h3>
+                <small class="qa-date">Added: {{ question.created_at }}</small>
+            </div>
+            
+            <div class="qa-content">
+                <div class="qa-question">
+                    <h4>Question Image</h4>
+                    <div class="qa-image">
+                        <img src="{{ url_for('uploaded_file', filename=question.image_path) }}" 
+                             alt="{{ question.name }}" 
+                             class="qa-img">
+                    </div>
+                </div>
+                
+                <div class="qa-answer">
+                    <h4>Answer</h4>
+                    <div class="answer-content">
+                        {% set answer_text = question.answer %}
+                        {% if answer_text %}
+                            {% if ('def ' in answer_text) or ('class ' in answer_text) or ('import ' in answer_text) or ('from ' in answer_text) or ('print(' in answer_text) or ('    ' in answer_text) or ('```' in answer_text) %}
+                                <!-- Detected code content, format as code block -->
+                                <pre><code>{{ answer_text }}</code></pre>
+                            {% else %}
+                                <!-- Regular text content with paragraph formatting -->
+                                {% for paragraph in answer_text.split('\n\n') %}
+                                    {% if paragraph.strip() %}
+                                        <p>{{ paragraph.replace('\n', '<br>')|safe }}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

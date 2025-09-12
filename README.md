@@ -89,12 +89,24 @@
 
 5. **Run the application**
    ```bash
+   # Development mode
    python app.py
+   # OR use the development script
+   ./start_dev.sh
+   
+   # Production mode with gunicorn
+   gunicorn app:app --bind 0.0.0.0:8000 --workers 4
+   # OR use the production script
+   ./start_production.sh
    ```
 
 6. **Open in browser**
    ```
+   # Development
    http://localhost:5000
+   
+   # Production
+   http://localhost:8000
    ```
 
 ---
@@ -140,7 +152,9 @@ Quiz-partner/
 │   ├── add_question.html      # Enhanced upload form
 │   ├── answers.html           # Q&A overview with search
 │   └── question_answer.html   # Individual question view
-├── 📋 requirements.txt         # Python dependencies
+├── � start_dev.sh             # Development startup script
+├── 🏭 start_production.sh      # Production startup script
+├── �📋 requirements.txt         # Python dependencies
 ├── 📖 README.md               # This file
 └── 🚫 .gitignore              # Git ignore rules
 ```
@@ -286,9 +300,14 @@ python app.py
 4. Set up SSL certificates
 
 ```bash
-# Example with gunicorn
+# Install gunicorn
 pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+
+# Start with gunicorn (production)
+gunicorn app:app --bind 0.0.0.0:8000 --workers 4
+
+# Alternative production options
+gunicorn app:app --bind 0.0.0.0:8000 --workers 4 --timeout 30 --keep-alive 2
 ```
 
 ---

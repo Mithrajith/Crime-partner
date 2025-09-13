@@ -1,0 +1,492 @@
+{% extends "base.html" %}
+
+{% block title %}All Questions - Crime Platform{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>All Questions</h1>
+    <p>Complete collection of questions from all modules</p>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>Questions and Answers</h2>
+        <div class="section-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="search-section">
+        <form method="GET" class="search-form">
+            <div class="search-group">
+                <input type="text" 
+                       name="search" 
+                       value="{{ search_query or '' }}" 
+                       placeholder="Search questions by name or answer content..."
+                       class="search-input">
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if search_query %}
+                    <a href="{{ url_for('all_questions') }}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+        {% if search_query %}
+            <p class="search-results">Showing results for: <strong>"{{ search_query }}"</strong> ({{ questions|length }} results)</p>
+        {% else %}
+            <p class="search-results">Showing all {{ questions|length }} questions</p>
+        {% endif %}
+    </div>
+
+    {% if questions %}
+        <div class="questions-grid">
+            {% for question in questions %}
+            <div class="question-card">
+                <div class="question-image">
+                    <img src="{{ url_for('uploaded_file', filename=question.image_path) }}" 
+                         alt="{{ question.name or 'Question ' ~ loop.index }}" 
+                         class="question-img">
+                </div>
+                <div class="question-info">
+                    <h3 class="question-title">{{ question.name or 'Question #' ~ loop.index }}</h3>
+                    <div class="question-meta">
+                        <span class="module-badge">{{ question.module_name }}</span>
+                        <small class="question-date">Added: {{ question.created_at }}</small>
+                    </div>
+                </div>
+                <div class="question-actions">
+                    <a href="{{ url_for('question_answer', question_id=question.id) }}" 
+                       class="btn btn-info btn-small">View Answer</a>
+                    <a href="{{ url_for('edit_answer', question_id=question.id) }}" 
+                       class="btn btn-warning btn-small">Edit</a>
+                    <a href="{{ url_for('module_view', module_id=question.module_id) }}" 
+                       class="btn btn-secondary btn-small">View Module</a>
+                    <button class="btn btn-danger btn-small delete-question" 
+                            data-question-id="{{ question.id }}"
+                            data-name="{{ question.name or 'Question #' ~ loop.index }}">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            {% if search_query %}
+                <p>No questions found matching "{{ search_query }}". <a href="{{ url_for('all_questions') }}">View all questions</a></p>
+            {% else %}
+                <p>No questions found. <a href="{{ url_for('dashboard') }}">Go to dashboard to add questions</a></p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.search-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    border: 1px solid #cbd5e1;
+}
+
+.search-form {
+    margin-bottom: 0;
+}
+
+.search-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    min-width: 300px;
+    background: white;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    transform: translateY(-1px);
+}
+
+.search-results {
+    margin-top: 1rem;
+    color: #64748b;
+    font-style: italic;
+    margin-bottom: 0;
+}
+
+.questions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.question-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+}
+
+.question-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.question-image {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background: #f8fafc;
+    position: relative;
+}
+
+.question-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.question-card:hover .question-img {
+    transform: scale(1.02);
+}
+
+.question-info {
+    padding: 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.question-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.4;
+}
+
+.question-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.module-badge {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    align-self: flex-start;
+}
+
+.question-date {
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+.question-actions {
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: #fafbfc;
+}
+
+.btn-small {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    transform: translateY(-1px);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .search-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-input {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .search-group .btn {
+        width: 100%;
+    }
+    
+    .questions-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .question-actions {
+        flex-direction: column;
+    }
+    
+    .question-actions .btn-small {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Password Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 2rem;
+    border: none;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+    color: #dc2626;
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-body p {
+    color: #374151;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.password-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.password-input:focus {
+    outline: none;
+    border-color: #dc2626;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modal-footer .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.btn-confirm {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-confirm:hover {
+    background: #b91c1c;
+}
+</style>
+
+<script>
+// Password-protected deletion
+function showDeleteModal(questionId, questionName) {
+    // Create modal HTML
+    const modalHTML = `
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🔒 Delete Question</h3>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Question:</strong> ${questionName}</p>
+                    <p>To delete this question, please enter the password:</p>
+                    <p><strong>Password:</strong> delpass</p>
+                    <input type="password" id="deletePassword" class="password-input" placeholder="Enter password to confirm deletion" autocomplete="off">
+                    <div id="passwordError" style="color: #dc2626; margin-top: 0.5rem; font-size: 0.875rem; display: none;">
+                        Incorrect password. Please try again.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="button" class="btn btn-confirm" onclick="confirmDelete(${questionId})">Delete Question</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    document.getElementById('deleteModal').style.display = 'block';
+    
+    // Focus on password input
+    document.getElementById('deletePassword').focus();
+    
+    // Handle Enter key
+    document.getElementById('deletePassword').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            confirmDelete(questionId);
+        }
+    });
+    
+    // Close modal when clicking outside
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDeleteModal();
+        }
+    });
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function confirmDelete(questionId) {
+    const password = document.getElementById('deletePassword').value;
+    const errorDiv = document.getElementById('passwordError');
+    
+    if (password === 'delpass') {
+        // Correct password, proceed with deletion
+        window.location.href = `/delete_question/${questionId}`;
+    } else {
+        // Wrong password, show error
+        errorDiv.style.display = 'block';
+        document.getElementById('deletePassword').value = '';
+        document.getElementById('deletePassword').focus();
+        
+        // Add shake animation
+        const input = document.getElementById('deletePassword');
+        input.style.animation = 'shake 0.5s ease-in-out';
+        setTimeout(() => {
+            input.style.animation = '';
+        }, 500);
+    }
+}
+
+// Handle delete question clicks
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-question').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const questionId = this.getAttribute('data-question-id');
+            const name = this.getAttribute('data-name');
+            showDeleteModal(questionId, name);
+        });
+    });
+});
+
+// Add shake animation CSS
+const shakeCSS = `
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+`;
+
+// Add CSS to head
+const style = document.createElement('style');
+style.textContent = shakeCSS;
+document.head.appendChild(style);
+</script>
+{% endblock %}

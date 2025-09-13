@@ -22,7 +22,7 @@ def allowed_file(filename):
 
 def init_db():
     """Initialize the SQLite database with required tables."""
-    conn = sqlite3.connect('quiz_platform.db')
+    conn = sqlite3.connect('Crime_platform.db')
     cursor = conn.cursor()
     
     # Create modules table
@@ -59,7 +59,7 @@ def init_db():
 
 def get_db_connection():
     """Get database connection."""
-    conn = sqlite3.connect('quiz_platform.db')
+    conn = sqlite3.connect('Crime_platform.db')
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -70,8 +70,17 @@ def dashboard():
     modules = conn.execute(
         'SELECT * FROM modules ORDER BY created_at DESC'
     ).fetchall()
+    
+    # Get all questions for the dashboard display
+    all_questions = conn.execute('''
+        SELECT q.*, m.name as module_name, m.id as module_id 
+        FROM questions q 
+        JOIN modules m ON q.module_id = m.id 
+        ORDER BY q.created_at DESC
+    ''').fetchall()
+    
     conn.close()
-    return render_template('index.html', modules=modules)
+    return render_template('index.html', modules=modules, all_questions=all_questions)
 
 @app.route('/add_module', methods=['POST'])
 def add_module():
@@ -224,6 +233,33 @@ def delete_question(question_id):
     flash('Question not found!', 'error')
     return redirect(url_for('dashboard'))
 
+@app.route('/all-questions')
+def all_questions():
+    """Show all questions from all modules."""
+    conn = get_db_connection()
+    
+    # Get search query
+    search_query = request.args.get('search', '').strip()
+    
+    if search_query:
+        questions = conn.execute('''
+            SELECT q.*, m.name as module_name, m.id as module_id 
+            FROM questions q 
+            JOIN modules m ON q.module_id = m.id 
+            WHERE q.name LIKE ? OR q.answer LIKE ? 
+            ORDER BY q.created_at DESC
+        ''', (f'%{search_query}%', f'%{search_query}%')).fetchall()
+    else:
+        questions = conn.execute('''
+            SELECT q.*, m.name as module_name, m.id as module_id 
+            FROM questions q 
+            JOIN modules m ON q.module_id = m.id 
+            ORDER BY q.created_at DESC
+        ''').fetchall()
+    
+    conn.close()
+    return render_template('all_questions.html', questions=questions, search_query=search_query)
+
 @app.route('/question/<int:question_id>/answer')
 def question_answer(question_id):
     """Show single question with its answer."""
@@ -273,6 +309,49 @@ def answers_view(module_id):
     conn.close()
     return render_template('answers.html', module=module, questions=questions, search_query=search_query)
 
+@app.route('/question/<int:question_id>/edit', methods=['GET', 'POST'])
+def edit_answer(question_id):
+    """Edit the answer for a question."""
+    conn = get_db_connection()
+    
+    question = conn.execute('''
+        SELECT q.*, m.name as module_name, m.id as module_id 
+        FROM questions q 
+        JOIN modules m ON q.module_id = m.id 
+        WHERE q.id = ?
+    ''', (question_id,)).fetchone()
+    
+    if not question:
+        flash('Question not found!', 'error')
+        conn.close()
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        new_answer = request.form.get('answer', '').strip()
+        question_name = request.form.get('question_name', '').strip()
+        
+        if not new_answer:
+            flash('Answer cannot be empty!', 'error')
+            conn.close()
+            return render_template('edit_answer.html', question=question)
+        
+        if not question_name:
+            question_name = 'Untitled Question'
+        
+        # Update the question answer and name
+        conn.execute(
+            'UPDATE questions SET answer = ?, name = ? WHERE id = ?',
+            (new_answer, question_name, question_id)
+        )
+        conn.commit()
+        conn.close()
+        
+        flash('Answer updated successfully!', 'success')
+        return redirect(url_for('question_answer', question_id=question_id))
+    
+    conn.close()
+    return render_template('edit_answer.html', question=question)
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     """Serve uploaded files."""
@@ -280,4 +359,4 @@ def uploaded_file(filename):
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(host="0.0.0.0",port="5001",debug=True)

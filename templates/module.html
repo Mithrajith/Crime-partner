@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ module.name }} - Quiz Platform{% endblock %}
+{% block title %}{{ module.name }} - Crime Platform{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -34,9 +34,9 @@
                 <div class="question-actions">
                     <a href="{{ url_for('question_answer', question_id=question.id) }}" 
                        class="btn btn-info btn-small">View Answer</a>
-                    <a href="{{ url_for('delete_question', question_id=question.id) }}" 
-                       class="btn btn-danger btn-small" 
-                       onclick="return confirm('Are you sure you want to delete this question?')">Delete</a>
+                    <button class="btn btn-danger btn-small delete-question" 
+                            data-question-id="{{ question.id }}"
+                            data-name="{{ question.name or 'Question #' ~ loop.index }}">Delete</button>
                 </div>
             </div>
             {% endfor %}
@@ -47,4 +47,204 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+// Password-protected deletion
+function showDeleteModal(questionId, questionName) {
+    // Create modal HTML
+    const modalHTML = `
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🔒 Delete Question</h3>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Question:</strong> ${questionName}</p>
+                    <p>To delete this question, please enter the password:</p>
+                    <p><strong>Password:</strong> delpass</p>
+                    <input type="password" id="deletePassword" class="password-input" placeholder="Enter password to confirm deletion" autocomplete="off">
+                    <div id="passwordError" style="color: #dc2626; margin-top: 0.5rem; font-size: 0.875rem; display: none;">
+                        Incorrect password. Please try again.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="button" class="btn btn-confirm" onclick="confirmDelete(${questionId})">Delete Question</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    document.getElementById('deleteModal').style.display = 'block';
+    
+    // Focus on password input
+    document.getElementById('deletePassword').focus();
+    
+    // Handle Enter key
+    document.getElementById('deletePassword').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            confirmDelete(questionId);
+        }
+    });
+    
+    // Close modal when clicking outside
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeDeleteModal();
+        }
+    });
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function confirmDelete(questionId) {
+    const password = document.getElementById('deletePassword').value;
+    const errorDiv = document.getElementById('passwordError');
+    
+    if (password === 'delpass') {
+        // Correct password, proceed with deletion
+        window.location.href = `/delete_question/${questionId}`;
+    } else {
+        // Wrong password, show error
+        errorDiv.style.display = 'block';
+        document.getElementById('deletePassword').value = '';
+        document.getElementById('deletePassword').focus();
+        
+        // Add shake animation
+        const input = document.getElementById('deletePassword');
+        input.style.animation = 'shake 0.5s ease-in-out';
+        setTimeout(() => {
+            input.style.animation = '';
+        }, 500);
+    }
+}
+
+// Handle delete question clicks
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-question').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const questionId = this.getAttribute('data-question-id');
+            const name = this.getAttribute('data-name');
+            showDeleteModal(questionId, name);
+        });
+    });
+});
+
+// Add shake animation CSS
+const shakeCSS = `
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 2rem;
+    border: none;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+    color: #dc2626;
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-body p {
+    color: #374151;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.password-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.password-input:focus {
+    outline: none;
+    border-color: #dc2626;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modal-footer .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.btn-confirm {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-confirm:hover {
+    background: #b91c1c;
+}
+`;
+
+// Add CSS to head
+const style = document.createElement('style');
+style.textContent = shakeCSS;
+document.head.appendChild(style);
+</script>
 {% endblock %}

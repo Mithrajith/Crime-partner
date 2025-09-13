@@ -36,7 +36,18 @@
                 </div>
                 
                 <div class="qa-answer">
-                    <h4>Answer</h4>
+                    <div class="answer-header">
+                        <h4>Answer</h4>
+                        <div class="answer-actions">
+                            <button class="copy-btn" onclick="copyAnswer(this)" data-answer="{{ question.answer }}">
+                                <span class="copy-icon">📋</span>
+                                <span class="copy-text">Copy Answer</span>
+                            </button>
+                            <a href="{{ url_for('edit_answer', question_id=question.id) }}" class="btn btn-warning btn-small">
+                                <span>✏️</span> Edit
+                            </a>
+                        </div>
+                    </div>
                     <div class="answer-content">
                         {% set answer_text = question.answer %}
                         {% if answer_text %}
@@ -58,4 +69,110 @@
         </div>
     </div>
 </div>
+
+<style>
+.answer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.copy-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.copy-btn.copied {
+    background: #10b981;
+}
+
+.copy-icon {
+    font-size: 1rem;
+}
+
+.answer-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+
+@media (max-width: 768px) {
+    .answer-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .answer-actions {
+        align-self: stretch;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+function copyAnswer(button) {
+    const answer = button.getAttribute('data-answer');
+    const textElement = button.querySelector('.copy-text');
+    const iconElement = button.querySelector('.copy-icon');
+    
+    navigator.clipboard.writeText(answer).then(function() {
+        // Success feedback
+        button.classList.add('copied');
+        textElement.textContent = 'Copied!';
+        iconElement.textContent = '✅';
+        
+        // Reset after 2 seconds
+        setTimeout(function() {
+            button.classList.remove('copied');
+            textElement.textContent = 'Copy Answer';
+            iconElement.textContent = '📋';
+        }, 2000);
+    }).catch(function(err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = answer;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        // Success feedback
+        button.classList.add('copied');
+        textElement.textContent = 'Copied!';
+        iconElement.textContent = '✅';
+        
+        // Reset after 2 seconds
+        setTimeout(function() {
+            button.classList.remove('copied');
+            textElement.textContent = 'Copy Answer';
+            iconElement.textContent = '📋';
+        }, 2000);
+    });
+}
+</script>
 {% endblock %}

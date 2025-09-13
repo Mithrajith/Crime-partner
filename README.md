@@ -1,15 +1,15 @@
-# 🎯 Quiz Partner
+# 🎯 Crime Partner
 
 <div align="center">
 
-![Quiz Partner](https://img.shields.io/badge/Quiz-Partner-blue?style=for-the-badge&logo=python)
+![Crime Partner](https://img.shields.io/badge/Crime-Partner-blue?style=for-the-badge&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-3.0.0-green?style=for-the-badge&logo=flask)
 ![Python](https://img.shields.io/badge/Python-3.13.7-yellow?style=for-the-badge&logo=python)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-orange?style=for-the-badge&logo=sqlite)
 
-**A modern, professional quiz management system built with Flask**
+**A modern, professional Crime management system built with Flask**
 
-*Create, manage, and organize quiz modules with an intuitive drag-and-drop interface*
+*Create, manage, and organize Crime modules with an intuitive drag-and-drop interface*
 
 </div>
 
@@ -24,7 +24,7 @@
 - Professional typography with Inter font
 
 ### 📚 **Module Management**
-- Create and organize quiz modules
+- Create and organize Crime modules
 - Dashboard overview of all modules
 - Easy navigation between modules
 
@@ -65,7 +65,7 @@
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd Quiz-partner
+   cd Crime-partner
    ```
 
 2. **Create virtual environment**
@@ -114,7 +114,7 @@
 ## 📖 Usage Guide
 
 ### 🏠 **Dashboard**
-- View all your quiz modules
+- View all your Crime modules
 - Create new modules with descriptive names
 - Quick access to module management
 
@@ -139,9 +139,9 @@
 ## 🗂️ Project Structure
 
 ```
-Quiz-partner/
+Crime-partner/
 ├── 📱 app.py                    # Main Flask application
-├── 🗃️ quiz.db                  # SQLite database
+├── 🗃️ Crime.db                  # SQLite database
 ├── 📁 uploads/                 # User uploaded images
 ├── 🎨 static/
 │   └── styles.css             # Professional UI styling
@@ -261,7 +261,7 @@ export FLASK_DEBUG=0
 python -c "from app import init_db; init_db()"
 
 # Reset database (caution: loses all data)
-rm quiz.db
+rm Crime.db
 python app.py
 ```
 
@@ -356,7 +356,7 @@ source .venv/bin/activate  # Linux/Mac
 #### **Database Issues**
 ```bash
 # Reset database (loses all data)
-rm quiz.db
+rm Crime.db
 python app.py
 ```
 
@@ -430,7 +430,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Built with ❤️ using Flask and modern web technologies**
 
-*Happy Quiz Creating! 🎯*
+*Happy Crime Creating! 🎯*
 
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github)](https://github.com)
 [![Flask](https://img.shields.io/badge/Powered%20by-Flask-green?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)

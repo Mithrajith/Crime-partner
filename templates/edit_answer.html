@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Answer - {{ question.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Edit Answer</h1>
+    <p>Modify the answer for "{{ question.name }}" from {{ question.module_name }}</p>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>Question & Answer Editor</h2>
+        <div class="section-actions">
+            <a href="{{ url_for('question_answer', question_id=question.id) }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('module_view', module_id=question.module_id) }}" class="btn btn-secondary">Back to Module</a>
+            <a href="{{ url_for('all_questions') }}" class="btn btn-info">All Questions</a>
+        </div>
+    </div>
+
+    <div class="edit-container">
+        <div class="question-preview">
+            <h3>Question Preview</h3>
+            <div class="question-image">
+                <img src="{{ url_for('uploaded_file', filename=question.image_path) }}" 
+                     alt="{{ question.name }}" 
+                     class="preview-img">
+            </div>
+            <div class="question-info">
+                <p><strong>Module:</strong> {{ question.module_name }}</p>
+                <p><strong>Created:</strong> {{ question.created_at }}</p>
+            </div>
+        </div>
+
+        <form method="POST" class="edit-form">
+            <div class="form-group">
+                <label for="question_name" class="form-label">Question Name</label>
+                <input type="text" 
+                       id="question_name" 
+                       name="question_name" 
+                       value="{{ question.name }}" 
+                       placeholder="Enter question name"
+                       class="form-input">
+                <small class="form-hint">Give this question a descriptive name</small>
+            </div>
+
+            <div class="form-group">
+                <label for="answer" class="form-label">Answer</label>
+                <textarea id="answer" 
+                          name="answer" 
+                          rows="15" 
+                          placeholder="Enter the answer..." 
+                          required 
+                          class="form-textarea">{{ question.answer }}</textarea>
+                <small class="form-hint">Provide the complete answer. Code formatting will be automatically detected.</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">
+                    <span>💾</span> Save Changes
+                </button>
+                <a href="{{ url_for('question_answer', question_id=question.id) }}" class="btn btn-secondary">Cancel</a>
+                <button type="button" class="btn btn-info" onclick="previewAnswer()">
+                    <span>👁️</span> Preview
+                </button>
+            </div>
+        </form>
+
+        <!-- Preview Section -->
+        <div id="preview-section" class="preview-section" style="display: none;">
+            <h3>Answer Preview</h3>
+            <div id="preview-content" class="answer-content">
+                <!-- Preview will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.edit-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.question-preview {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+}
+
+.question-preview h3 {
+    color: #374151;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.question-image {
+    margin-bottom: 1rem;
+}
+
+.preview-img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.question-info {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+}
+
+.question-info p {
+    margin-bottom: 0.5rem;
+    color: #6b7280;
+}
+
+.edit-form {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f9fafb;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f9fafb;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 300px;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.form-hint {
+    display: block;
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.preview-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+    grid-column: 1 / -1;
+}
+
+.preview-section h3 {
+    color: #374151;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.answer-content {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.answer-content pre {
+    background: #1f2937;
+    color: #f9fafb;
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.answer-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 1024px) {
+    .edit-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .question-preview {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .section-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .section-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+function previewAnswer() {
+    const answerText = document.getElementById('answer').value;
+    const previewSection = document.getElementById('preview-section');
+    const previewContent = document.getElementById('preview-content');
+    
+    if (!answerText.trim()) {
+        alert('Please enter some answer text to preview.');
+        return;
+    }
+    
+    // Simple detection for code content
+    const isCode = answerText.includes('def ') || 
+                   answerText.includes('class ') || 
+                   answerText.includes('import ') || 
+                   answerText.includes('from ') || 
+                   answerText.includes('print(') || 
+                   answerText.includes('    ') || 
+                   answerText.includes('```');
+    
+    if (isCode) {
+        previewContent.innerHTML = `<pre><code>${escapeHtml(answerText)}</code></pre>`;
+    } else {
+        const paragraphs = answerText.split('\n\n').map(paragraph => {
+            if (paragraph.trim()) {
+                return `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`;
+            }
+            return '';
+        }).join('');
+        previewContent.innerHTML = paragraphs;
+    }
+    
+    previewSection.style.display = 'block';
+    previewSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Auto-resize textarea
+document.getElementById('answer').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.max(300, this.scrollHeight) + 'px';
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl+S to save
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        document.querySelector('form').submit();
+    }
+    
+    // Ctrl+P to preview
+    if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        previewAnswer();
+    }
+});
+</script>
+{% endblock %}

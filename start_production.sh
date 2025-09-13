@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Quiz Partner - Production Startup Script
-echo "🎯 Starting Quiz Partner in Production Mode..."
+# Crime Partner - Production Startup Script
+echo "🎯 Starting Crime Partner in Production Mode..."
 
 # Activate virtual environment
 source .venv/bin/activate
@@ -13,7 +13,7 @@ if ! command -v gunicorn &> /dev/null; then
 fi
 
 # Start the application with gunicorn
-echo "🚀 Starting Quiz Partner on http://0.0.0.0:8000"
+echo "🚀 Starting Crime Partner on http://0.0.0.0:8000"
 echo "📊 Using 4 worker processes"
 echo "⏹️  Press Ctrl+C to stop"
 

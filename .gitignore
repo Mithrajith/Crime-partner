@@ -207,7 +207,7 @@ $RECYCLE.BIN/
 
 # Project specific
 uploads/
-*.db
+# *.db
 *.sqlite
 *.sqlite3
 test_*.py

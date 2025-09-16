@@ -206,7 +206,7 @@ $RECYCLE.BIN/
 .nfs*
 
 # Project specific
-uploads/
+
 # *.db
 *.sqlite
 *.sqlite3

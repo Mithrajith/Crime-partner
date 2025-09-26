@@ -3,15 +3,29 @@ import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from werkzeug.utils import secure_filename
 import uuid
+import secrets
+import html
+import re
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-change-this'
+app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+
+# Security headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # Ensure uploads directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -19,6 +33,63 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def validate_image(file):
+    """Validate that the uploaded file is actually an image."""
+    try:
+        # Read the first few bytes to check file signature
+        file.seek(0)
+        header = file.read(32)
+        file.seek(0)  # Reset file pointer
+        
+        # Check common image file signatures
+        image_signatures = [
+            b'\x89PNG\r\n\x1a\n',  # PNG
+            b'\xff\xd8\xff',        # JPEG
+            b'GIF87a',              # GIF87a
+            b'GIF89a',              # GIF89a
+            b'BM',                  # BMP
+            b'RIFF',                # WebP (part of RIFF)
+        ]
+        
+        for signature in image_signatures:
+            if header.startswith(signature):
+                return True
+                
+        # Special check for WebP (RIFF + WEBP)
+        if header.startswith(b'RIFF') and b'WEBP' in header[:16]:
+            return True
+            
+        return False
+    except Exception:
+        return False
+
+def sanitize_input(text, max_length=1000):
+    """Sanitize user input to prevent XSS and limit length."""
+    if not text:
+        return ""
+    
+    # Remove any HTML tags and escape special characters
+    text = html.escape(text.strip())
+    
+    # Limit length
+    if len(text) > max_length:
+        text = text[:max_length]
+    
+    # Remove potentially dangerous patterns
+    dangerous_patterns = [
+        r'javascript:',
+        r'vbscript:',
+        r'onload=',
+        r'onerror=',
+        r'<script',
+        r'</script>',
+    ]
+    
+    for pattern in dangerous_patterns:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    return text
 
 def init_db():
     """Initialize the SQLite database with required tables."""
@@ -59,8 +130,10 @@ def init_db():
 
 def get_db_connection():
     """Get database connection."""
-    conn = sqlite3.connect('Crime_platform.db')
+    conn = sqlite3.connect('Crime_platform.db', timeout=20.0)
     conn.row_factory = sqlite3.Row
+    # Enable foreign key constraints
+    conn.execute('PRAGMA foreign_keys = ON')
     return conn
 
 @app.route('/')
@@ -162,8 +235,8 @@ def add_question(module_id):
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        question_name = request.form.get('question_name', '').strip()
-        answer = request.form.get('answer', '').strip()
+        question_name = sanitize_input(request.form.get('question_name', ''), 200)
+        answer = sanitize_input(request.form.get('answer', ''), 5000)
         
         if not question_name:
             question_name = 'Untitled Question'
@@ -182,22 +255,37 @@ def add_question(module_id):
             flash('Answer is required!', 'error')
             return render_template('add_question.html', module=module)
         
-        if file and allowed_file(file.filename):
+        if file and allowed_file(file.filename) and validate_image(file):
+            # Additional file size check
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+            
+            if file_size > MAX_FILE_SIZE:
+                flash(f'File too large! Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.', 'error')
+                return render_template('add_question.html', module=module)
+            
             # Generate unique filename
             filename = str(uuid.uuid4()) + '.' + file.filename.rsplit('.', 1)[1].lower()
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
             
-            # Save question to database
-            conn.execute(
-                'INSERT INTO questions (module_id, name, image_path, answer) VALUES (?, ?, ?, ?)',
-                (module_id, question_name, filename, answer)
-            )
-            conn.commit()
-            conn.close()
-            
-            flash('Question added successfully!', 'success')
-            return redirect(url_for('module_view', module_id=module_id))
+            try:
+                # Save question to database
+                conn.execute(
+                    'INSERT INTO questions (module_id, name, image_path, answer) VALUES (?, ?, ?, ?)',
+                    (module_id, question_name, filename, answer)
+                )
+                conn.commit()
+                flash('Question added successfully!', 'success')
+                return redirect(url_for('module_view', module_id=module_id))
+            except sqlite3.Error as e:
+                # Remove uploaded file if database save fails
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                flash(f'Database error: {str(e)}', 'error')
+            finally:
+                conn.close()
         else:
             flash('Invalid file type! Please upload an image file.', 'error')
     
@@ -359,4 +447,14 @@ def uploaded_file(filename):
 
 if __name__ == '__main__':
     init_db()
-    app.run(host="0.0.0.0",port="5001",debug=True)
+    # Load environment variables
+    from dotenv import load_dotenv
+    try:
+        load_dotenv()
+    except ImportError:
+        pass  # dotenv not available, use defaults
+    
+    debug_mode = os.environ.get('FLASK_DEBUG', '1') == '1'
+    port = int(os.environ.get('PORT', '5001'))
+    
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)

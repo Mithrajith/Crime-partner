@@ -49,27 +49,26 @@
 </div>
 
 <script>
-// Password-protected deletion
+// Secure deletion confirmation
 function showDeleteModal(questionId, questionName) {
     // Create modal HTML
     const modalHTML = `
         <div id="deleteModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>🔒 Delete Question</h3>
+                    <h3>⚠️ Delete Question</h3>
                 </div>
                 <div class="modal-body">
                     <p><strong>Question:</strong> ${questionName}</p>
-                    <p>To delete this question, please enter the password:</p>
-                    <p><strong>Password:</strong> delpass</p>
-                    <input type="password" id="deletePassword" class="password-input" placeholder="Enter password to confirm deletion" autocomplete="off">
-                    <div id="passwordError" style="color: #dc2626; margin-top: 0.5rem; font-size: 0.875rem; display: none;">
-                        Incorrect password. Please try again.
+                    <p style="color: #dc2626; font-weight: 500;">Are you sure you want to permanently delete this question?</p>
+                    <p style="color: #6b7280; font-size: 0.875rem;">This action cannot be undone. The question and its associated image will be permanently removed.</p>
+                    <div style="margin: 1rem 0; padding: 1rem; background: #fef2f2; border-radius: 0.5rem; border-left: 4px solid #dc2626;">
+                        <p style="color: #991b1b; font-size: 0.875rem; margin: 0;">⚠️ This will permanently delete the question and its image file.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
-                    <button type="button" class="btn btn-confirm" onclick="confirmDelete(${questionId})">Delete Question</button>
+                    <button type="button" class="btn btn-confirm" onclick="proceedDelete(${questionId})" style="background: #dc2626;">Delete Permanently</button>
                 </div>
             </div>
         </div>
@@ -106,25 +105,13 @@ function closeDeleteModal() {
     }
 }
 
-function confirmDelete(questionId) {
-    const password = document.getElementById('deletePassword').value;
-    const errorDiv = document.getElementById('passwordError');
+function proceedDelete(questionId) {
+    // Double confirmation before deletion
+    closeDeleteModal();
     
-    if (password === 'delpass') {
-        // Correct password, proceed with deletion
+    // Final confirmation
+    if (confirm('FINAL CONFIRMATION: This question will be permanently deleted. Continue?')) {
         window.location.href = `/delete_question/${questionId}`;
-    } else {
-        // Wrong password, show error
-        errorDiv.style.display = 'block';
-        document.getElementById('deletePassword').value = '';
-        document.getElementById('deletePassword').focus();
-        
-        // Add shake animation
-        const input = document.getElementById('deletePassword');
-        input.style.animation = 'shake 0.5s ease-in-out';
-        setTimeout(() => {
-            input.style.animation = '';
-        }, 500);
     }
 }
 

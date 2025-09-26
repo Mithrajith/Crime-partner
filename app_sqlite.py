@@ -44,8 +44,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # MongoDB Configuration
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://zypher046_db_user:jfaKYcY3xpIWJwIb@portal-db.netpxxe.mongodb.net/?retryWrites=true&w=majority')
-DATABASE_NAME = os.environ.get('DATABASE_NAME', 'portal-db')
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/')
+DATABASE_NAME = os.environ.get('DATABASE_NAME', 'quiz_partner')
 
 # Global MongoDB client
 mongo_client = None
@@ -699,15 +699,19 @@ def inject_auth():
     """Inject authentication status into all templates"""
     return dict(is_logged_in=is_logged_in())
 
+# Initialize MongoDB connection when the module is imported
+if not init_mongodb():
+    print("❌ Could not connect to MongoDB. Please check your connection string.")
+    print("💡 Set MONGODB_URI environment variable with your MongoDB Atlas connection string")
+    # For production, we might want to handle this more gracefully
+    import sys
+    sys.exit(1)
+
+# WSGI application
+application = app
+
 if __name__ == '__main__':
-    # Initialize MongoDB connection
-    if not init_mongodb():
-        print("❌ Could not connect to MongoDB. Please check your connection string.")
-        print("💡 Set MONGODB_URI environment variable with your MongoDB Atlas connection string")
-        exit(1)
-    
     # Environment variables are already loaded at the top
-    
     debug_mode = os.environ.get('FLASK_DEBUG', '1') == '1'
     port = int(os.environ.get('PORT', '5001'))
     

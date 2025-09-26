@@ -15,6 +15,10 @@ app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 ADMIN_USERNAME = "killer"
 ADMIN_PASSWORD = "cheater"
 
+# Operation passwords
+DELETE_PASSWORD = "Delpass"
+EDIT_PASSWORD = "edpass"
+
 # Security headers
 @app.after_request
 def add_security_headers(response):
@@ -221,29 +225,57 @@ def add_module():
     
     return redirect(url_for('dashboard'))
 
-@app.route('/delete_module/<int:module_id>')
+@app.route('/delete_module/<int:module_id>', methods=['GET', 'POST'])
+@login_required
 def delete_module(module_id):
-    """Delete a module and all its questions."""
+    """Delete a module and all its questions with password confirmation."""
     conn = get_db_connection()
     
-    # Get all questions for this module to delete their image files
-    questions = conn.execute(
-        'SELECT image_path FROM questions WHERE module_id = ?', (module_id,)
-    ).fetchall()
+    # Get module details
+    module = conn.execute(
+        'SELECT * FROM modules WHERE id = ?', (module_id,)
+    ).fetchone()
     
-    # Delete image files
-    for question in questions:
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], question['image_path'])
-        if os.path.exists(image_path):
-            os.remove(image_path)
+    if not module:
+        conn.close()
+        flash('Module not found!', 'error')
+        return redirect(url_for('dashboard'))
     
-    # Delete module (CASCADE will delete questions)
-    conn.execute('DELETE FROM modules WHERE id = ?', (module_id,))
-    conn.commit()
+    if request.method == 'POST':
+        delete_password = request.form.get('delete_password', '').strip()
+        
+        if delete_password != DELETE_PASSWORD:
+            flash('Incorrect delete password!', 'error')
+            conn.close()
+            return redirect(url_for('dashboard'))
+        
+        # Get all questions for this module to delete their image files
+        questions = conn.execute(
+            'SELECT image_path FROM questions WHERE module_id = ?', (module_id,)
+        ).fetchall()
+        
+        # Delete image files
+        for question in questions:
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], question['image_path'])
+            if os.path.exists(image_path):
+                os.remove(image_path)
+        
+        # Delete module (CASCADE will delete questions)
+        conn.execute('DELETE FROM modules WHERE id = ?', (module_id,))
+        conn.commit()
+        conn.close()
+        
+        flash('Module deleted successfully!', 'success')
+        return redirect(url_for('dashboard'))
+    
+    # GET request - show confirmation page
+    # Get question count for confirmation display
+    question_count = conn.execute(
+        'SELECT COUNT(*) as count FROM questions WHERE module_id = ?', (module_id,)
+    ).fetchone()['count']
+    
     conn.close()
-    
-    flash('Module deleted successfully!', 'success')
-    return redirect(url_for('dashboard'))
+    return render_template('confirm_delete_module.html', module=module, question_count=question_count)
 
 @app.route('/module/<int:module_id>')
 def module_view(module_id):
@@ -337,16 +369,29 @@ def add_question(module_id):
     conn.close()
     return render_template('add_question.html', module=module)
 
-@app.route('/delete_question/<int:question_id>')
+@app.route('/delete_question/<int:question_id>', methods=['GET', 'POST'])
+@login_required
 def delete_question(question_id):
-    """Delete a question."""
+    """Delete a question with password confirmation."""
     conn = get_db_connection()
     
     question = conn.execute(
         'SELECT * FROM questions WHERE id = ?', (question_id,)
     ).fetchone()
     
-    if question:
+    if not question:
+        conn.close()
+        flash('Question not found!', 'error')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        delete_password = request.form.get('delete_password', '').strip()
+        
+        if delete_password != DELETE_PASSWORD:
+            flash('Incorrect delete password!', 'error')
+            conn.close()
+            return redirect(url_for('module_view', module_id=question['module_id']))
+        
         module_id = question['module_id']
         
         # Delete image file
@@ -362,9 +407,9 @@ def delete_question(question_id):
         conn.close()
         return redirect(url_for('module_view', module_id=module_id))
     
+    # GET request - show confirmation page
     conn.close()
-    flash('Question not found!', 'error')
-    return redirect(url_for('dashboard'))
+    return render_template('confirm_delete.html', question=question)
 
 @app.route('/all-questions')
 def all_questions():
@@ -443,8 +488,9 @@ def answers_view(module_id):
     return render_template('answers.html', module=module, questions=questions, search_query=search_query)
 
 @app.route('/question/<int:question_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_answer(question_id):
-    """Edit the answer for a question."""
+    """Edit the answer for a question with password confirmation."""
     conn = get_db_connection()
     
     question = conn.execute('''
@@ -460,6 +506,13 @@ def edit_answer(question_id):
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
+        edit_password = request.form.get('edit_password', '').strip()
+        
+        if edit_password != EDIT_PASSWORD:
+            flash('Incorrect edit password!', 'error')
+            conn.close()
+            return render_template('edit_answer.html', question=question)
+        
         new_answer = request.form.get('answer', '').strip()
         question_name = request.form.get('question_name', '').strip()
         

@@ -3,13 +3,14 @@ import html
 import re
 import secrets
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
 from werkzeug.utils import secure_filename
 import uuid
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, DuplicateKeyError
 from bson import ObjectId
 from bson.errors import InvalidId
+from functools import wraps
 
 # Load environment variables at the top
 try:
@@ -20,6 +21,10 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+
+# Authentication credentials
+ADMIN_USERNAME = "killer"
+ADMIN_PASSWORD = "cheater"
 
 # Security headers
 @app.after_request
@@ -168,7 +173,46 @@ def is_valid_object_id(id_string):
     except (InvalidId, TypeError):
         return False
 
+def login_required(f):
+    """Decorator to require login for protected routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session or not session['logged_in']:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def is_logged_in():
+    """Check if user is logged in"""
+    return session.get('logged_in', False)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            session['username'] = username
+            flash('Welcome! You have been logged in successfully.', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password. Please try again.', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout route"""
+    session.clear()
+    flash('You have been logged out successfully.', 'info')
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def dashboard():
     """Dashboard page showing all modules."""
     try:
@@ -207,6 +251,7 @@ def dashboard():
         return render_template('index.html', modules=[], all_questions=[])
 
 @app.route('/add_module', methods=['POST'])
+@login_required
 def add_module():
     """Add a new module."""
     try:
@@ -237,6 +282,7 @@ def add_module():
         return redirect(url_for('dashboard'))
 
 @app.route('/delete_module/<module_id>')
+@login_required
 def delete_module(module_id):
     """Delete a module and all its questions."""
     try:
@@ -274,6 +320,7 @@ def delete_module(module_id):
         return redirect(url_for('dashboard'))
 
 @app.route('/module/<module_id>')
+@login_required
 def module_view(module_id):
     """Show all questions in a module (image only)."""
     try:
@@ -300,6 +347,7 @@ def module_view(module_id):
         return redirect(url_for('dashboard'))
 
 @app.route('/module/<module_id>/add', methods=['GET', 'POST'])
+@login_required
 def add_question(module_id):
     """Add a new question to a module."""
     try:
@@ -382,6 +430,7 @@ def add_question(module_id):
         return redirect(url_for('dashboard'))
 
 @app.route('/delete_question/<question_id>')
+@login_required
 def delete_question(question_id):
     """Delete a question."""
     try:
@@ -420,6 +469,7 @@ def delete_question(question_id):
         return redirect(url_for('dashboard'))
 
 @app.route('/all-questions')
+@login_required
 def all_questions():
     """Show all questions from all modules."""
     try:
@@ -482,6 +532,7 @@ def all_questions():
         return render_template('all_questions.html', questions=[], search_query='')
 
 @app.route('/question/<question_id>/answer')
+@login_required
 def question_answer(question_id):
     """Show single question with its answer."""
     try:
@@ -521,6 +572,7 @@ def question_answer(question_id):
         return redirect(url_for('dashboard'))
 
 @app.route('/module/<module_id>/answers')
+@login_required
 def answers_view(module_id):
     """Show Q&A view with images and formatted answers."""
     try:
@@ -557,6 +609,7 @@ def answers_view(module_id):
         return redirect(url_for('dashboard'))
 
 @app.route('/question/<question_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_answer(question_id):
     """Edit the answer for a question."""
     try:
@@ -640,6 +693,11 @@ def health_check():
         return {'status': 'healthy', 'database': 'connected'}, 200
     except Exception as e:
         return {'status': 'unhealthy', 'error': str(e)}, 500
+
+@app.context_processor
+def inject_auth():
+    """Inject authentication status into all templates"""
+    return dict(is_logged_in=is_logged_in())
 
 if __name__ == '__main__':
     # Initialize MongoDB connection

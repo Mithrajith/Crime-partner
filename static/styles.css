@@ -78,6 +78,17 @@ body {
     transform: translateY(-1px);
 }
 
+.logout-link {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logout-link:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
 /* Page Header */
 .page-header {
     text-align: center;

@@ -1,14 +1,19 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
 from werkzeug.utils import secure_filename
 import uuid
+from functools import wraps
 import secrets
 import html
 import re
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+
+# Authentication credentials
+ADMIN_USERNAME = "killer"
+ADMIN_PASSWORD = "cheater"
 
 # Security headers
 @app.after_request
@@ -91,6 +96,20 @@ def sanitize_input(text, max_length=1000):
     
     return text
 
+def login_required(f):
+    """Decorator to require login for protected routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session or not session['logged_in']:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def is_logged_in():
+    """Check if user is logged in"""
+    return session.get('logged_in', False)
+
 def init_db():
     """Initialize the SQLite database with required tables."""
     conn = sqlite3.connect('Crime_platform.db')
@@ -136,7 +155,32 @@ def get_db_connection():
     conn.execute('PRAGMA foreign_keys = ON')
     return conn
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            session['username'] = username
+            flash('Welcome! You have been logged in successfully.', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password. Please try again.', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout route"""
+    session.clear()
+    flash('You have been logged out successfully.', 'info')
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def dashboard():
     """Dashboard page showing all modules."""
     conn = get_db_connection()
@@ -156,6 +200,7 @@ def dashboard():
     return render_template('index.html', modules=modules, all_questions=all_questions)
 
 @app.route('/add_module', methods=['POST'])
+@login_required
 def add_module():
     """Add a new module."""
     module_name = request.form.get('module_name', '').strip()
@@ -444,6 +489,11 @@ def edit_answer(question_id):
 def uploaded_file(filename):
     """Serve uploaded files."""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.context_processor
+def inject_auth():
+    """Inject authentication status into all templates"""
+    return dict(is_logged_in=is_logged_in())
 
 if __name__ == '__main__':
     init_db()
